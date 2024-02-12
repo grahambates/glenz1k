@@ -1,8 +1,6 @@
 program=out/glenz
 
 # Emulator options
-BUILD=hunk
-DEBUG=0
 MODEL=A500
 FASTMEM=0
 CHIPMEM=512
