@@ -88,15 +88,15 @@ InitFaces:
 		move.w	d2,(a4)+
 		move.w	d3,(a4)+
 		move.w	#2,(a4)+
-		move.w	d1,(a4)+
-		move.w	d3,(a4)+
-		move.w	d2,(a4)+
-		move.w	d1,(a4)+
-		move.w	#2,(a4)+
 		move.w	d4,(a4)+
 		move.w	d0,(a4)+
 		move.w	d2,(a4)+
 		move.w	d4,(a4)+
+		move.w	#2,(a4)+
+		move.w	d1,(a4)+
+		move.w	d3,(a4)+
+		move.w	d2,(a4)+
+		move.w	d1,(a4)+
 		dbf	d7,.l
 
 ********************************************************************************
@@ -445,13 +445,13 @@ WriteText:
 		move.l	LN_SUCC(a1),a1
 ; .ok:
 		move.l	tf_CharData(a1),a1
-; 		rept	FONT_HEIGHT
+		rept	FONT_HEIGHT
 		move.b	C_D-FONT_START(a1),(a0)+
 		move.b	C_S-FONT_START(a1),(a0)+
 		move.b	C_R-FONT_START(a1),(a0)+
-; 		lea	FONT_MOD(a1),a1
-; 		lea	SCREEN_BW-TEXT_LEN(a0),a0 ; next line in bitplane
-; 		endr
+		lea	FONT_MOD(a1),a1
+		lea	SCREEN_BW-TEXT_LEN(a0),a0 ; next line in bitplane
+		endr
 		rts
 
 ********************************************************************************
