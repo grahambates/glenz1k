@@ -49,7 +49,6 @@ Sin:		rs.w	2048
 SurfColW:	rs.b	1
 SurfCol:	rs.b	1
 Angles:		rs.w	2
-Zoom:		rs.w	1
 Dist:		rs.w	1
 Frame:		rs.w	1
 Faces:		rs.w	FACE_COUNT*5
@@ -64,7 +63,6 @@ DATA_SIZEOF	rs.b	0
 		lea	Cop(pc),a0
 		move.l	a0,cop1lc-C(a6)
 		move.w	#DMAF_SETCLR!DMAF_MASTER!DMAF_RASTER!DMAF_COPPER!DMAF_BLITTER,dmacon-C(a6)
-
 
 ;-------------------------------------------------------------------------------
 ; Expand face data
@@ -84,16 +82,16 @@ InitFaces:
 		move.w	d1,(a4)+
 		move.w	d2,(a4)+
 		move.w	d0,(a4)+
-		move.w	#2,(a4)+
-		move.w	d1,(a4)+
-		move.w	d3,(a4)+
-		move.w	d2,(a4)+
-		move.w	d1,(a4)+
 		move.w	#1,(a4)+
 		move.w	d3,(a4)+
 		move.w	d4,(a4)+
 		move.w	d2,(a4)+
 		move.w	d3,(a4)+
+		move.w	#2,(a4)+
+		move.w	d1,(a4)+
+		move.w	d3,(a4)+
+		move.w	d2,(a4)+
+		move.w	d1,(a4)+
 		move.w	#2,(a4)+
 		move.w	d4,(a4)+
 		move.w	d0,(a4)+
@@ -136,7 +134,7 @@ MainLoop:
 
 ;-------------------------------------------------------------------------------
 ; Clear screen
-		WAIT_BLIT
+		; WAIT_BLIT
 		move.l	#$01000000,bltcon0-C(a6)
 		clr.w	bltdmod-C(a6)
 		move.l	a1,bltdpt-C(a6)
@@ -151,18 +149,17 @@ MainLoop:
 		addq.l	#8,a1
 		endr
 
+		addq.w	#1,Frame(a5)
+
 		; Increment angles
 		move.l	#$7fe07fe,d1	; sin mask
 		add.l	#Y_SPEED<<16!Z_SPEED,Angles(a5)
 		and.l	d1,Angles(a5)
 
-		; Increment zoom
-		move.w	Zoom(a5),d0
-		addq	#ZOOM_SPEED,d0
+		; Set dist from frame
+		move.w	Frame(a5),d0
+		lsl.w	#2,d0
 		and.w	d1,d0
-		move.w	d0,Zoom(a5)
-
-		; Set dist from zoom
 		move.w	(a5,d0.w),d0
 		asr.w	#ZOOM_SHIFT,d0
 		add.w	#650,d0
@@ -170,9 +167,9 @@ MainLoop:
 
 ;-------------------------------------------------------------------------------
 Rotate:
-		; a5 is already pointing to sin
 		movem.w	Angles(a5),a1/a4
 
+		; a5 is already pointing to sin
 		lea	512(a5),a0	; cosine
 		lea	Verts(pc),a2
 
@@ -246,56 +243,47 @@ Rotate:
 ********************************************************************************
 DoBars:
 		lea	CopBars(pc),a0
-		move.w	#$b53,d3	; colours
-		move.w	#$b42,d4
-		moveq	#0,d5
-		addq.w	#1,Frame(a5)
-		move.w	Frame(a5),d1
-		btst	#8-1,d1		; swap order when frame mod rolls over
-		beq	.odd
-		exg	d3,d4
+		move.l	#$b530b42,d3	; colours
+
+		move.b	Frame+1(a5),d1	; upper byte already clear?
+		add.b	d1,d1
+		bcc	.odd
+		swap	d3
 .odd:
-		add.w	d1,d1
-		and.w	#$ff,d1		; frame%256
+		; and.w	#$ff,d1		; frame%256
 		add.w	#BAR_DIST,d1	; dist
 
-		moveq	#BAR_COUNT-1,d7
+		moveq	#BAR_COUNT-1,d6
 .l:
-		move.w	d7,d2
+		move.w	d6,d2
 		lsl.w	#8,d2
 		add.w	d1,d2
 		move.l	#BAR_H<<8,d0	; base height
 
 		divs	d2,d0
-		add.w	#DIW_YSTRT-BARS_YOFFSET,d0
+		add.b	#DIW_YSTRT-BARS_YOFFSET,d0
 ; pal fix needed?
-		cmp.w	#$ff,d0
-		ble	.ok
-		tst.w	d5		; already set
+		bcc.s	.ok
+		addq	#1,d7		; already set? d7 was -1 from prev loop
 		bne	.ok
 		move.w	#$ffdf,(a0)
-		move.w	d4,6(a0)	; set same color
 		lea	8(a0),a0
-		moveq	#1,d5
 .ok:
 		move.b	d0,(a0)		; set wait
 		move.w	d3,6(a0)	; set color
-		exg	d3,d4		; swap colors for next row
+		swap	d3		; swap colors for next row
 		lea	8(a0),a0	; next wait in copperlist
-		dbf	d7,.l
+		dbf	d6,.l
 
 
 ;-------------------------------------------------------------------------------
 DrawLines:
-		moveq	#SCREEN_BW,d0
-		moveq	#-1,d1
-
-		WAIT_BLIT
-		move.w	d1,bltafwm-C(a6)
-		move.w	d1,bltbdat-C(a6)
+		; WAIT_BLIT
+		move.w	d6,bltafwm-C(a6) ; d6 is -1 from last loop
+		move.w	d6,bltbdat-C(a6)
 		move.w	#$8000,bltadat-C(a6)
-		move.w	d0,bltcmod-C(a6)
-		move.w	d0,bltcmod-C(a6)
+		move.w	#SCREEN_BW,bltcmod-C(a6)
+		move.w	#SCREEN_BW,bltcmod-C(a6)
 
 		lea	Faces(a5),a1
 		lea	Transformed(a5),a0
@@ -321,7 +309,6 @@ DrawLines:
 		or.b	#4,SurfCol(a5)
 		and.b	#-2,SurfCol(a5)
 .notHidden:
-
 
 		moveq	#2,d6
 .l1:
@@ -360,11 +347,17 @@ Fill:
 
 		bsr	WriteText
 
-		move.w	#DIW_YSTRT+DIW_H,d7
-.sync:		cmp.b	vhposr-C(a6),d7
+.sync:		cmp.b	#(DIW_YSTRT+DIW_H)&$ff,vhposr-C(a6)
 		bne.s	.sync
 
-		bra	MainLoop
+		btst	#6,ciaa
+		bne.w	MainLoop
+
+		; gfx lib still in a5 from WriteText
+		move.l	38(a5),cop1lc-C(a6) ; restore copper pointer
+		movem.l	(sp)+,d0-a6
+		rts
+
 
 
 ********************************************************************************
@@ -447,19 +440,18 @@ WriteText:
 		move.l	$4.w,a1		; execbase
 		move.l	156(a1),a1	; graphics.library
 		move.l	gb_TextFonts+LH_HEAD(a1),a1
-		cmp.w	#8,(tf_YSize,a1) ; if the first font is not topaz/8, the next one is, or we fail
-		beq.b	.ok
+; 		cmp.w	#8,(tf_YSize,a1) ; if the first font is not topaz/8, the next one is, or we fail
+; 		beq.b	.ok
 		move.l	LN_SUCC(a1),a1
-		moveq	#0,d0
-.ok:
+; .ok:
 		move.l	tf_CharData(a1),a1
-		rept	FONT_HEIGHT
+; 		rept	FONT_HEIGHT
 		move.b	C_D-FONT_START(a1),(a0)+
 		move.b	C_S-FONT_START(a1),(a0)+
 		move.b	C_R-FONT_START(a1),(a0)+
-		lea	FONT_MOD(a1),a1
-		lea	SCREEN_BW-TEXT_LEN(a0),a0 ; next line in bitplane
-		endr
+; 		lea	FONT_MOD(a1),a1
+; 		lea	SCREEN_BW-TEXT_LEN(a0),a0 ; next line in bitplane
+; 		endr
 		rts
 
 ********************************************************************************
@@ -496,6 +488,9 @@ MidNeg2:	dc.w	0
 MidNeg3:	dc.w	0,0
 
 
+ViewScreen:	dc.l	SCREEN_ADDR
+DrawScreen:	dc.l	SCREEN_ADDR+SCREEN_SIZE
+
 ;-------------------------------------------------------------------------------
 Cop:
 		dc.w	diwstrt,DIW_STRT
@@ -521,7 +516,7 @@ CopBpl:
 		dc.w	(DIW_YSTRT+SCREEN_H-1)<<8+5,$fffe
 		dc.w	bpl1mod,-SCREEN_BW*2
 		dc.w	bpl2mod,-SCREEN_BW*2
-
+;
 		dc.w	$0182,$a32
 		dc.w	$0184,$b42
 		dc.w	$0188,$a32
@@ -531,9 +526,6 @@ CopBpl:
 CopBars:
 		rept	BAR_COUNT+1
 		dc.w	$4005,$fffe
-		dc.w	color00,0
+		dc.w	color00,$b42
 		endr
 		; dc.w    $ffff,$fffe
-
-ViewScreen:	dc.l	SCREEN_ADDR
-DrawScreen:	dc.l	SCREEN_ADDR+SCREEN_SIZE
