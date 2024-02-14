@@ -92,8 +92,8 @@ zx0_decompress:
 .done:					;movem.l (sp)+,a2/d2     ; restore preserved registers
 		jmp	UNPACK_ADR
 
-dos:
-		dc.b	"dos.library"
-
 PackedData:
 		incbin	out/effect.bin.zx0
+
+dos:
+		dc.b	"dos.library"
