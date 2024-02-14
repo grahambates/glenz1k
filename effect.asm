@@ -69,7 +69,7 @@ DATA_SIZEOF	rs.b	0
 ;-------------------------------------------------------------------------------
 InitFaces:
 		lea	FacesData(pc),a0
-		lea	Faces(a5),a4
+		lea	Faces(a5),a1
 		moveq	#FACE_COUNT/4-1,d7
 .l:
 		; FACE    1,A,B,C,A
@@ -77,26 +77,26 @@ InitFaces:
 		; FACE    1,D,E,C,D
 		; FACE    2,E,A,C,E
 		movem.w	(a0)+,d0-d4
-		move.w	#1,(a4)+
-		move.w	d0,(a4)+
-		move.w	d1,(a4)+
-		move.w	d2,(a4)+
-		move.w	d0,(a4)+
-		move.w	#1,(a4)+
-		move.w	d3,(a4)+
-		move.w	d4,(a4)+
-		move.w	d2,(a4)+
-		move.w	d3,(a4)+
-		move.w	#2,(a4)+
-		move.w	d4,(a4)+
-		move.w	d0,(a4)+
-		move.w	d2,(a4)+
-		move.w	d4,(a4)+
-		move.w	#2,(a4)+
-		move.w	d1,(a4)+
-		move.w	d3,(a4)+
-		move.w	d2,(a4)+
-		move.w	d1,(a4)+
+		move.w	#1,(a1)+
+		move.w	d0,(a1)+
+		move.w	d1,(a1)+
+		move.w	d2,(a1)+
+		move.w	d0,(a1)+
+		move.w	#1,(a1)+
+		move.w	d3,(a1)+
+		move.w	d4,(a1)+
+		move.w	d2,(a1)+
+		move.w	d3,(a1)+
+		move.w	#2,(a1)+
+		move.w	d4,(a1)+
+		move.w	d0,(a1)+
+		move.w	d2,(a1)+
+		move.w	d4,(a1)+
+		move.w	#2,(a1)+
+		move.w	d1,(a1)+
+		move.w	d3,(a1)+
+		move.w	d2,(a1)+
+		move.w	d1,(a1)+
 		dbf	d7,.l
 
 ********************************************************************************
@@ -149,21 +149,21 @@ MainLoop:
 		addq.l	#8,a2
 		endr
 
-		addq.w	#1,Frame(a5)
 
 		; Increment angles
-		move.l	#$7fe07fe,d1	; sin mask
+		move.l	#$7fe07fe,d2	; sin mask
 		add.l	#Y_SPEED<<16!Z_SPEED,Angles(a5)
-		and.l	d1,Angles(a5)
+		and.l	d2,Angles(a5)
 
 		; Set dist from frame
-		move.w	Frame(a5),d0
-		lsl.w	#2,d0
-		and.w	d1,d0
-		move.w	(a5,d0.w),d0
-		asr.w	#ZOOM_SHIFT,d0
-		add.w	#650,d0
-		move.w	d0,Dist(a5)
+		addq.w	#1,Frame(a5)
+		move.w	Frame(a5),d1
+		lsl.w	#2,d1
+		and.w	d2,d1
+		move.w	(a5,d1.w),d1
+		asr.w	#ZOOM_SHIFT,d1
+		add.w	#650,d1
+		move.w	d1,Dist(a5)
 
 ;-------------------------------------------------------------------------------
 Rotate:
@@ -250,7 +250,6 @@ DoBars:
 		bcc	.odd
 		swap	d3
 .odd:
-		; and.w	#$ff,d1		; frame%256
 		add.w	#BAR_DIST,d1	; dist
 
 		moveq	#BAR_COUNT-1,d6
@@ -271,19 +270,19 @@ DoBars:
 .ok:
 		move.b	d0,(a0)		; set wait
 		move.w	d3,6(a0)	; set color
-		swap	d3		; swap colors for next row
 		lea	8(a0),a0	; next wait in copperlist
+		swap	d3		; swap colors for next row
 		dbf	d6,.l
 
 
 ;-------------------------------------------------------------------------------
 DrawLines:
 		; WAIT_BLIT
-		move.w	d6,bltafwm-C(a6) ; d6 is -1 from last loop
+		move.w	#SCREEN_BW,bltcmod-C(a6)
+		move.w	#SCREEN_BW,bltcmod-C(a6)
 		move.w	d6,bltbdat-C(a6)
+		move.w	d6,bltafwm-C(a6) ; d6 is -1 from last loop
 		move.w	#$8000,bltadat-C(a6)
-		move.w	#SCREEN_BW,bltcmod-C(a6)
-		move.w	#SCREEN_BW,bltcmod-C(a6)
 
 		lea	Faces(a5),a1
 		lea	Transformed(a5),a0
@@ -306,7 +305,7 @@ DrawLines:
 		cmp.w	d2,d0
 		ble.b	.notHidden
 		; Change color
-		or.b	#4,SurfCol(a5)
+		add.b	#4,SurfCol(a5)
 		and.b	#-2,SurfCol(a5)
 .notHidden:
 
@@ -345,10 +344,11 @@ Fill:
 		move.l	a0,bltdpt-C(a6)
 		move.w	#BPLS*(SCREEN_H-3)*64+SCREEN_BW/2,bltsize-C(a6)
 
-		bsr	WriteText
 
 .sync:		cmp.b	#(DIW_YSTRT+DIW_H)&$ff,vhposr-C(a6)
 		bne.s	.sync
+
+		bsr	WriteText
 
 		btst	#6,ciaa
 		bne.w	MainLoop
@@ -410,8 +410,8 @@ dygdx:		add.w	d2,d2
 		WAIT_BLIT
 		bchg	d5,(a2)
 
-		move.l	d4,bltcon0-C(a6)
 		move.l	d2,bltbmod-C(a6)
+		move.l	d4,bltcon0-C(a6)
 		move.l	a2,bltcpt-C(a6)
 		move.w	d0,(a3)+
 		move.l	a2,(a3)+
@@ -493,11 +493,11 @@ DrawScreen:	dc.l	SCREEN_ADDR+SCREEN_SIZE
 
 ;-------------------------------------------------------------------------------
 Cop:
+		dc.w	bplcon0,BPLS<<12!$200
 		dc.w	diwstrt,DIW_STRT
 		dc.w	diwstop,DIW_STOP
 		dc.w	ddfstrt,DDF_STRT
 		dc.w	ddfstop,DDF_STOP
-		dc.w	bplcon0,BPLS<<12!$200
 CopBpl:
 		rept	BPLS*2
 		dc.w	bpl0pt+REPTN*2,0
