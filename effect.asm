@@ -62,7 +62,6 @@ DATA_SIZEOF	rs.b	0
 		lea	custom+C,a6
 		lea	Cop(pc),a0
 		move.l	a0,cop1lc-C(a6)
-		move.w	#DMAF_SETCLR!DMAF_MASTER!DMAF_RASTER!DMAF_COPPER!DMAF_BLITTER,dmacon-C(a6)
 
 ;-------------------------------------------------------------------------------
 ; Expand face data
@@ -124,6 +123,7 @@ InitSin:
 
 ********************************************************************************
 MainLoop:
+		clr.l	bpl1mod-C(a6)	; save a couple of bytes moving from the copper
 
 ;-------------------------------------------------------------------------------
 ; Swap buffers
@@ -142,13 +142,13 @@ MainLoop:
 
 ;-------------------------------------------------------------------------------
 ; Poke bpls
-		lea	CopBpl+6(pc),a2
+		; Write directly to regs, not copper
+		; Seem to be able to get away with this
+		lea	bpl0pt-C(a6),a2
 		rept	BPLS
-		move.w	a0,(a2)
+		move.l	a0,(a2)+
 		lea	SCREEN_BPL(a0),a0
-		addq.l	#8,a2
 		endr
-
 
 		; Increment angles
 		move.l	#$7fe07fe,d2	; sin mask
@@ -440,10 +440,10 @@ WriteText:
 		move.l	$4.w,a1		; execbase
 		move.l	156(a1),a1	; graphics.library
 		move.l	gb_TextFonts+LH_HEAD(a1),a2
-; 		cmp.w	#8,(tf_YSize,a2) ; if the first font is not topaz/8, the next one is, or we fail
-; 		beq.b	.ok
+		cmp.w	#8,tf_YSize(a2)	; if the first font is not topaz/8, the next one is, or we fail
+		beq.b	.ok
 		move.l	LN_SUCC(a2),a2
-; .ok:
+.ok:
 		move.l	tf_CharData(a2),a2
 		rept	FONT_HEIGHT
 		move.b	C_D-FONT_START(a2),(a0)+
@@ -498,12 +498,16 @@ Cop:
 		dc.w	diwstop,DIW_STOP
 		dc.w	ddfstrt,DDF_STRT
 		dc.w	ddfstop,DDF_STOP
-CopBpl:
-		rept	BPLS*2
-		dc.w	bpl0pt+REPTN*2,0
-		endr
-		dc.w	bpl1mod,0
-		dc.w	bpl2mod,0
+		dc.w	dmacon,DMAF_SETCLR!DMAF_MASTER!DMAF_RASTER!DMAF_COPPER!DMAF_BLITTER
+
+		; moved to main loop:
+; CopBpl:
+; 		rept	BPLS*2
+; 		dc.w	bpl0pt+REPTN*2,0
+; 		endr
+
+		; dc.w	bpl1mod,0
+		; dc.w	bpl2mod,0
 
 		dc.w	$0182,$a00
 		dc.w	$0184,$f00
@@ -528,4 +532,4 @@ CopBars:
 		dc.w	$0005,$fffe
 		dc.w	color00,$b42
 		endr
-		; dc.w    $ffff,$fffe
+		dc.w	$ffff,$fffe

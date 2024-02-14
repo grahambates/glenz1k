@@ -12,6 +12,8 @@ BIN_DIR = ~/amiga/bin
 VASM = $(BIN_DIR)/vasmm68k_mot
 ZX0 = $(BIN_DIR)/ZX0
 MKADF = $(BIN_DIR)/mkadf
+ADFCREATE = $(BIN_DIR)/adfcreate
+ADFINSTALL = $(BIN_DIR)/adfinst
 FSUAE = /Applications/FS-UAE-3.app/Contents/MacOS/fs-uae
 VAMIGA = /Applications/vAmiga.app/Contents/MacOS/vAmiga
 
@@ -19,8 +21,13 @@ VAMIGA = /Applications/vAmiga.app/Contents/MacOS/vAmiga
 VASMFLAGS = -m68000 -x -opt-size -nosym
 FSUAEFLAGS = --floppy_drive_0_sounds=off --video_sync=1 --automatic_input_grab=0  --chip_memory=$(CHIPMEM) --fast_memory=$(FASTMEM) --slow_memory=$(SLOWMEM) --amiga_model=$(MODEL) --automatic_input_grab=0
 
-$(program).adf: $(program).bb
-	$(info Installing bootblock $<)
+# Copy the bootblock to a DOS ADF
+$(program).adf: $(program)-bb.adf
+	-$(ADFCREATE) $@
+	-$(ADFINSTALL) --install=$< $@
+
+# mkadf sets the checksum, but doesn't give us a DOS disk
+$(program)-bb.adf: $(program).bb
 	$(MKADF) $< > $@
 
 run: $(program).adf
