@@ -142,11 +142,11 @@ MainLoop:
 
 ;-------------------------------------------------------------------------------
 ; Poke bpls
-		lea	CopBpl+6(pc),a1
+		lea	CopBpl+6(pc),a2
 		rept	BPLS
-		move.w	a0,(a1)
+		move.w	a0,(a2)
 		lea	SCREEN_BPL(a0),a0
-		addq.l	#8,a1
+		addq.l	#8,a2
 		endr
 
 		addq.w	#1,Frame(a5)
@@ -353,8 +353,8 @@ Fill:
 		btst	#6,ciaa
 		bne.w	MainLoop
 
-		; gfx lib still in a5 from WriteText
-		move.l	38(a5),cop1lc-C(a6) ; restore copper pointer
+		; gfx lib still in a1 from WriteText
+		move.l	38(a1),cop1lc-C(a6) ; restore copper pointer
 		movem.l	(sp)+,d0-a6
 		rts
 
@@ -439,18 +439,18 @@ WriteText:
 		lea	SCREEN_SIZE-TEXT_LEN-2-SCREEN_BW*8(a0),a0
 		move.l	$4.w,a1		; execbase
 		move.l	156(a1),a1	; graphics.library
-		move.l	gb_TextFonts+LH_HEAD(a1),a1
-; 		cmp.w	#8,(tf_YSize,a1) ; if the first font is not topaz/8, the next one is, or we fail
+		move.l	gb_TextFonts+LH_HEAD(a1),a2
+; 		cmp.w	#8,(tf_YSize,a2) ; if the first font is not topaz/8, the next one is, or we fail
 ; 		beq.b	.ok
-		move.l	LN_SUCC(a1),a1
+		move.l	LN_SUCC(a2),a2
 ; .ok:
-		move.l	tf_CharData(a1),a1
+		move.l	tf_CharData(a2),a2
 		rept	FONT_HEIGHT
-		move.b	C_D-FONT_START(a1),(a0)+
-		move.b	C_S-FONT_START(a1),(a0)+
-		move.b	C_R-FONT_START(a1),(a0)+
-		lea	FONT_MOD(a1),a1
+		; move.b	C_D-FONT_START(a2),(a0)+
+		; move.b	C_S-FONT_START(a2),(a0)+
+		; move.b	C_R-FONT_START(a2),(a0)+
 		lea	SCREEN_BW-TEXT_LEN(a0),a0 ; next line in bitplane
+		lea	FONT_MOD(a2),a2
 		endr
 		rts
 
@@ -497,18 +497,18 @@ Cop:
 		dc.w	diwstop,DIW_STOP
 		dc.w	ddfstrt,DDF_STRT
 		dc.w	ddfstop,DDF_STOP
+		dc.w	bplcon0,BPLS<<12!$200
 CopBpl:
 		rept	BPLS*2
 		dc.w	bpl0pt+REPTN*2,0
 		endr
-		dc.w	bplcon0,BPLS<<12!$200
 		dc.w	bpl1mod,0
 		dc.w	bpl2mod,0
 
-		dc.w	$0180,$da8
 		dc.w	$0182,$a00
 		dc.w	$0184,$f00
 		dc.w	$0188,$500
+		dc.w	$0180,$da8
 		dc.w	$018a,$fcc
 		dc.w	$018c,$fff
 
@@ -525,7 +525,7 @@ CopBpl:
 
 CopBars:
 		rept	BAR_COUNT+1
-		dc.w	$4005,$fffe
+		dc.w	$0005,$fffe
 		dc.w	color00,$b42
 		endr
 		; dc.w    $ffff,$fffe
