@@ -446,9 +446,9 @@ WriteText:
 ; .ok:
 		move.l	tf_CharData(a2),a2
 		rept	FONT_HEIGHT
-		; move.b	C_D-FONT_START(a2),(a0)+
-		; move.b	C_S-FONT_START(a2),(a0)+
-		; move.b	C_R-FONT_START(a2),(a0)+
+		move.b	C_D-FONT_START(a2),(a0)+
+		move.b	C_S-FONT_START(a2),(a0)+
+		move.b	C_R-FONT_START(a2),(a0)+
 		lea	SCREEN_BW-TEXT_LEN(a0),a0 ; next line in bitplane
 		lea	FONT_MOD(a2),a2
 		endr

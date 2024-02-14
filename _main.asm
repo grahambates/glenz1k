@@ -94,7 +94,6 @@ zx0_decompress:
 
 dos:
 		dc.b	"dos.library"
-		even
 
 PackedData:
 		incbin	out/effect.bin.zx0
